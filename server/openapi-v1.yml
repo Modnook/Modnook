@@ -1,0 +1,2036 @@
+openapi: "3.0.3"
+info:
+  title: Modnook API
+  version: "1.0"
+servers:
+  - url: http://localhost:3000/api/v1
+
+tags:
+  - name: Authentication
+    description: Endpoints for user authentication and session management.
+  - name: Users
+    description: Endpoints for managing users and their profiles.
+  - name: Games
+    description: Endpoints for managing games and their associated data.
+  - name: Projects
+    description: Endpoints for managing projects and their releases.
+  - name: Notifications
+    description: Endpoints for managing user notifications.
+
+paths:
+  /users/@me:
+    get:
+      description: |
+        Retrieves the currently authenticated user's information. 
+
+        To retrieve another user's information, use the `GET /users/{user_slug}` endpoint.
+
+        Requires a valid authentication token.
+      responses:
+        "200":
+          description: Returns the currently authenticated user's information.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserObject"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "429": { $ref: "#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+      security:
+        - SessionToken: []
+      tags:
+        - Users
+
+    patch:
+      description: |
+        Updates the currently authenticated user's information.
+
+        To modify another user's information i.e for administrative purposes, use the `PATCH /users/{user_slug}` endpoint.
+
+        Requires a valid authentication token.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserUpdaterObject"
+      responses:
+        "200":
+          description: Returns the updated user's information.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserObject"
+        "400":
+          description: Bad Request. The request body is invalid or missing required fields.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "429": { $ref: "#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+      security:
+        - SessionToken: []
+      tags:
+        - Users
+
+    delete:
+      description: |
+        Deletes the currently authenticated user's account. Note this cannot be undone
+
+        Requires a valid authentication token.
+      parameters:
+        - name: delete_projects
+          in: query
+          description: If true, all projects owned by the user will also be deleted.
+          required: false
+          schema:
+            type: boolean
+      responses:
+        "204":
+          description: No Content. The user's account has been successfully deleted.
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "429": { $ref: "#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+      security:
+        - SessionToken: []
+      tags:
+        - Users
+
+  /users/search:
+    get:
+      description: |
+        Searches for users by username or display name. Returns a list of users matching the search query.
+      parameters:
+        - name: query
+          in: query
+          description: The search query to find users by username or display name.
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: The maximum number of users to return in the search results.
+          required: false
+          schema:
+            type: integer
+            default: 128
+        - name: page
+          in: query
+          description: The number of users to skip before starting to collect the result set.
+          required: false
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Returns a list of users matching the search query.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimplifiedUserPagingObject"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "429": { $ref: "#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+      tags:
+        - Users
+
+  /users/logout:
+    post:
+      description: |
+        Logs out the currently authenticated user by invalidating their session token.
+
+        Requires a valid authentication token.
+      responses:
+        "204":
+          description: No Content. The user has been successfully logged out.
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "429": { $ref: "#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+      security:
+        - SessionToken: []
+      tags:
+        - Users
+        - Authentication
+
+  /users/{user_slug}:
+    get:
+      description: |
+        Retrieves the specified user's information by their slug or user id
+      parameters:
+        - name: user_slug
+          in: path
+          description: The slug or user id of the user to retrieve.
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Returns the specified user's information.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimplifiedUserObject"
+        "400":
+          description: Bad Request. The request parameters are invalid.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "404":
+          description: Not Found. The specified user does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "429": { $ref: "#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+      tags:
+        - Users
+
+    patch:
+      description: |
+        Updates the specified user's information by their slug or user id. 
+
+        Requires a valid authentication token and the actioning user must a `Moderator` or `Admin` role and have higher privileges than the user being updated. For example a `Moderator` cannot update an `Admin` user's information.
+      parameters:
+        - name: user_slug
+          in: path
+          description: The slug or user id of the user to update.
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserUpdaterObject"
+      responses:
+        "200":
+          description: Returns the updated user's information.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimplifiedUserObject"
+        "400":
+          description: Bad Request. The request body is invalid or missing required fields.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403":
+          description: Forbidden. The user does not have permission to update this user's information.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "404":
+          description: Not Found. The specified user does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "429": { $ref: "#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+      security:
+        - SessionToken: []
+      tags:
+        - Users
+
+    delete:
+      description: |
+        Deletes the specified user's account by their slug or user id. 
+
+        Requires a valid authentication token and the actioning user must a `Moderator` or `Admin` role and have higher privileges than the user being deleted. For example a `Moderator` cannot delete an `Admin` user's account.
+      parameters:
+        - name: user_slug
+          in: path
+          description: The slug or user id of the user to delete.
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: No Content. The user's account has been successfully deleted.
+        "400":
+          description: Bad Request. The request parameters are invalid.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403":
+          description: Forbidden. The user does not have permission to delete this user's account.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "404":
+          description: Not Found. The specified user does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "429": { $ref: "#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+      security:
+        - SessionToken: []
+      tags:
+        - Users
+
+  /users/{user_slug}/projects:
+    get:
+      description: |
+        Retrieves a list of projects owned by the specified user by their slug or user id.
+      parameters:
+        - name: user_slug
+          in: path
+          description: The slug or user id of the user whose projects to retrieve.
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: The maximum number of users to return in the search results.
+          required: false
+          schema:
+            type: integer
+            default: 128
+        - name: page
+          in: query
+          description: The number of users to skip before starting to collect the result set.
+          required: false
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Returns a list of projects owned by the specified user.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimplifiedUserPagingObject"
+        "400":
+          description: Bad Request. The request parameters are invalid.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "404":
+          description: Not Found. The specified user does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "429": { $ref: "#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+      tags:
+        - Users
+        - Projects
+
+  /notifications:
+    get:
+      description: |
+        Retrieves a list of notifications for the currently authenticated user.
+
+        Requires a valid authentication token.
+      parameters:
+        - name: limit
+          in: query
+          description: The maximum number of notifications to return in the response.
+          required: false
+          schema:
+            type: integer
+            default: 128
+        - name: page
+          in: query
+          description: The number of notifications to skip before starting to collect the result set.
+          required: false
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Returns a list of notifications for the currently authenticated user.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationPagingObject"
+        "400":
+          description: Bad Request. The request parameters are invalid.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "429": { $ref: "#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+      security:
+        - SessionToken: []
+      tags:
+        - Users
+        - Notifications
+
+  /notifications/read:
+    put:
+      description: |
+        Marks all notifications for the currently authenticated user as read.
+
+        Requires a valid authentication token.
+      responses:
+        "204":
+          description: No Content. All notifications have been marked as read.
+        "400":
+          description: Bad Request. The request parameters are invalid.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "429": { $ref: "#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+      security:
+        - SessionToken: []
+      tags:
+        - Users
+        - Notifications
+
+  /notifications/{notification_id}:
+    get:
+      description: |
+        Retrieves the details of a specific notification for the currently authenticated user.
+
+        Requires a valid authentication token.
+      parameters:
+        - name: notification_id
+          in: path
+          description: The unique identifier of the notification to retrieve.
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Returns the details of the specified notification.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationObject"
+        "400":
+          description: Bad Request. The request parameters are invalid.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404":
+          description: Not Found. The specified notification does not exist for the user.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "429": { $ref: "#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+      security:
+        - SessionToken: []
+      tags:
+        - Users
+        - Notifications
+
+  /notifications/{notification_id}/read:
+    put:
+      description: |
+        Marks a specific notification as read for the currently authenticated user.
+
+        Requires a valid authentication token.
+      parameters:
+        - name: notification_id
+          in: path
+          description: The unique identifier of the notification to mark as read.
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: No Content. The notification has been marked as read.
+        "400":
+          description: Bad Request. The request parameters are invalid.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404":
+          description: Not Found. The specified notification does not exist for the user.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "429": { $ref: "#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+      security:
+        - SessionToken: []
+      tags:
+        - Users
+        - Notifications
+
+  /games:
+    get:
+      description: |
+        Retrieves a paginated list of all games available.
+      parameters:
+        - name: limit
+          in: query
+          description: The maximum number of games to return in the response.
+          required: false
+          schema:
+            type: integer
+            default: 128
+        - name: page
+          in: query
+          description: The number of games to skip before starting to collect the result set.
+          required: false
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Returns a paginated list of all games available.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SimplifiedGamePagingObject"
+        "400":
+          description: Bad Request. The request parameters are invalid.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "429": { $ref: "#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+      tags:
+        - Games
+
+    post:
+      description: |
+        Creates a new game. Requires a valid authentication token and the actioning user must have an `Admin` or `Moderator` role.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GameBuilderObject"
+      responses:
+        "201":
+          description: Returns the newly created game.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimplifiedGameObject"
+        "400":
+          description: Bad Request. The request body is invalid or missing required fields.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403":
+          description: Forbidden. The user does not have permission to create a new game.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "409":
+          description: Conflict. A game with the same slug already exists.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "429": { $ref: "#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+      security:
+        - SessionToken: []
+      tags:
+        - Games
+
+  /games/{game_slug}:
+    get:
+      description: |
+        Retrieves the details of a specific game by its slug or ID.
+      parameters:
+        - name: game_slug
+          in: path
+          description: The slug of the game to retrieve.
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Returns the details of the specified game.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GameObject"
+        "400":
+          description: Bad Request. The request parameters are invalid.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "404":
+          description: Not Found. The specified game does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "429": { $ref: "#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+      tags:
+        - Games
+
+    patch:
+      description: |
+        Updates the details of a specific game by its slug or ID. 
+
+        Requires a valid authentication token and the actioning user must have an `Admin` or `Moderator` role.
+      parameters:
+        - name: game_slug
+          in: path
+          description: The slug or ID of the game to update.
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GameBuilderObject"
+      responses:
+        "200":
+          description: Returns the updated game details.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimplifiedGameObject"
+        "400":
+          description: Bad Request. The request body is invalid or missing required fields.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403":
+          description: Forbidden. The user does not have permission to update this game.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "404":
+          description: Not Found. The specified game does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "429": { $ref: "#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+      security:
+        - SessionToken: []
+      tags:
+        - Games
+
+  /games/{game_slug}/project-types:
+    get:
+      description: |
+        Retrieves a list of project types associated with a specific game by its slug or ID.
+      parameters:
+        - name: game_slug
+          in: path
+          description: The slug or ID of the game for which to retrieve project types.
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: The maximum number of project types to return in the response.
+          required: false
+          schema:
+            type: integer
+            default: 128
+        - name: page
+          in: query
+          description: The number of project types to skip before starting to collect the result set.
+          required: false
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Returns a list of project types associated with the specified game.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProjectTypePagingObject"
+        "400":
+          description: Bad Request. The request parameters are invalid.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "404":
+          description: Not Found. The specified game does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "429": { $ref: "#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+      tags:
+        - Games
+
+    patch:
+      description: |
+        Updates the list of project types associated with a specific game by its slug or ID. 
+
+        Requires a valid authentication token and the actioning user must have an `Admin` or `Moderator` role.
+      parameters:
+        - name: game_slug
+          in: path
+          description: The slug or ID of the game for which to update project types.
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: "#/components/schemas/ProjectTypeObject"
+      responses:
+        "200":
+          description: Returns the updated list of project types associated with the specified game.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProjectTypePagingObject"
+        "400":
+          description: Bad Request. The request body is invalid or missing required fields.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403":
+          description: Forbidden. The user does not have permission to update project types for this game.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "404":
+          description: Not Found. The specified game does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "429": { $ref: "#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+      tags:
+        - Games
+
+    post:
+      description: |
+        Creates a new project type for a specific game by its slug or ID. 
+
+        Requires a valid authentication token and the actioning user must have an `Admin` or `Moderator` role.
+      parameters:
+        - name: game_slug
+          in: path
+          description: The slug or ID of the game for which to create a new project type.
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectTypeBuilderObject"
+      responses:
+        "201":
+          description: Returns the created project type.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectTypeObject"
+        "400":
+          description: Bad Request. The request body is invalid or missing required fields.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403":
+          description: Forbidden. The user does not have permission to create project types for this game.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "404":
+          description: Not Found. The specified game does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "409":
+          description: Conflict. A project type with the same slug already exists for this game.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "429": { $ref: "#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+      tags:
+        - Games
+
+  /{game_slug}/projects:
+    get:
+      description: |
+        Retrieves a paginated list of all projects available.
+
+        Note only active projects will be returned. Projects that have been deleted or are inactive will not be included in the response.
+      parameters:
+        - name: game_slug
+          in: path
+          description: The slug of the game to which the project belongs.
+          required: true
+          schema:
+            type: string
+        - name: query
+          in: query
+          description: A search query to filter projects by name or description.
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: The maximum number of projects to return in the response.
+          required: false
+          schema:
+            type: integer
+            default: 128
+        - name: page
+          in: query
+          description: The number of projects to skip before starting to collect the result set.
+          required: false
+          schema:
+            type: integer
+            default: 0
+        - in: query
+          name: filters
+          description: A set of filters to apply to the project list. The filters should be provided as key-value pairs, where the key is the filter name and the value is the filter value. For example, to filter projects by type, you could use `filters[project_type]=mod`.
+          schema:
+            type: object
+            additionalProperties:
+              type: string
+          style: form
+          explode: true
+      responses:
+        "200":
+          description: Returns a paginated list of all projects available.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SimplifiedProjectPagingObject"
+        "400":
+          description: Bad Request. The request parameters are invalid.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "429": { $ref: "#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+      tags:
+        - Projects
+
+    post:
+      description: |
+        Creates a new project for the specified game.
+
+        Requires a valid authentication token.
+      parameters:
+        - name: game_slug
+          in: path
+          description: The slug of the game to which the project belongs.
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectBuilderObject"
+      responses:
+        "201":
+          description: Returns the newly created project.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimplifiedProjectObject"
+        "400":
+          description: Bad Request. The request body is invalid or missing required fields.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403":
+          description: Forbidden. The user does not have permission to create a new project for this game.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "404":
+          description: Not Found. The specified game does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "409":
+          description: Conflict. A project with the same slug already exists for this game.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "429": { $ref: "#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+      security:
+        - SessionToken: []
+      tags:
+        - Projects
+
+  /{game_slug}/projects/{project_slug}:
+    get:
+      description: |
+        Retrieves the details of a specific project by its slug or ID.
+
+        If the project is private, the currently authenticated user must be a member of the project to access its details or a `Helper`, `Moderator`, or `Admin`. Otherwise, a 403 Forbidden response will be returned.
+      parameters:
+        - name: game_slug
+          in: path
+          description: The slug of the game to which the project belongs.
+          required: true
+          schema:
+            type: string
+        - name: project_slug
+          in: path
+          description: The slug of the project to retrieve.
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Returns the details of the specified project.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectObject"
+        "400":
+          description: Bad Request. The request parameters are invalid.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403":
+          description: Forbidden. The user does not have permission to access this project.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "404":
+          description: Not Found. The specified project does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "429": { $ref: "#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+      security:
+        - SessionToken: []
+        - {}
+      tags:
+        - Projects
+
+    patch:
+      description: |
+        Updates the details of a specific project by its slug or ID.
+
+        Requires a valid authentication token and the currently authenticated user must be a member of the project with sufficient permissions to update it.
+      parameters:
+        - name: game_slug
+          in: path
+          description: The slug of the game to which the project belongs.
+          required: true
+          schema:
+            type: string
+        - name: project_slug
+          in: path
+          description: The slug of the project to update.
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectUpdaterObject"
+      responses:
+        "200":
+          description: Returns the updated project details.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimplifiedProjectObject"
+        "400":
+          description: Bad Request. The request body is invalid or missing required fields.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403":
+          description: Forbidden. The user does not have permission to update this project.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "404":
+          description: Not Found. The specified project does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "429": { $ref: "#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+      security:
+        - SessionToken: []
+      tags:
+        - Projects
+
+    delete:
+      description: |
+        Deletes a specific project by its slug or ID.
+
+        Requires a valid authentication token and the currently authenticated user must be a member of the project with sufficient permissions to delete it.
+      parameters:
+        - name: game_slug
+          in: path
+          description: The slug of the game to which the project belongs.
+          required: true
+          schema:
+            type: string
+        - name: project_slug
+          in: path
+          description: The slug of the project to delete.
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: No Content. The project has been successfully deleted.
+        "400":
+          description: Bad Request. The request parameters are invalid.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403":
+          description: Forbidden. The user does not have permission to delete this project.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "404":
+          description: Not Found. The specified project does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "429": { $ref: "#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+      security:
+        - SessionToken: []
+      tags:
+        - Projects
+
+  /{game_slug}/projects/{project_slug}/follow:
+    put:
+      description: |
+        Follows a specific project by its slug or ID.
+
+        Requires a valid authentication token.
+      parameters:
+        - name: game_slug
+          in: path
+          description: The slug of the game to which the project belongs.
+          required: true
+          schema:
+            type: string
+        - name: project_slug
+          in: path
+          description: The slug of the project to follow.
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: No Content. The project has been successfully followed.
+        "400":
+          description: Bad Request. The request parameters are invalid.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403":
+          description: Forbidden. The user does not have permission to follow this project.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "404":
+          description: Not Found. The specified project does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "429": { $ref: "#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+      security:
+        - SessionToken: []
+      tags:
+        - Projects
+
+  /{game_slug}/projects/{project_slug}/unfollow:
+    put:
+      description: |
+        Unfollows a specific project by its slug or ID.
+
+        Requires a valid authentication token.
+      parameters:
+        - name: game_slug
+          in: path
+          description: The slug of the game to which the project belongs.
+          required: true
+          schema:
+            type: string
+        - name: project_slug
+          in: path
+          description: The slug of the project to unfollow.
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: No Content. The project has been successfully unfollowed.
+        "400":
+          description: Bad Request. The request parameters are invalid.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403":
+          description: Forbidden. The user does not have permission to unfollow this project.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "404":
+          description: Not Found. The specified project does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "429": { $ref: "#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+      security:
+        - SessionToken: []
+      tags:
+        - Projects
+
+  /{game_slug}/projects/{project_slug}/releases:
+    get:
+      description: |
+        Retrieves a paginated list of all releases for a specific project by its slug or ID.
+
+        Note only active releases will be returned. Releases that have been deleted or are inactive will not be included in the response.
+      parameters:
+        - name: game_slug
+          in: path
+          description: The slug of the game to which the project belongs.
+          required: true
+          schema:
+            type: string
+        - name: project_slug
+          in: path
+          description: The slug of the project for which to retrieve releases.
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: The maximum number of releases to return in the response.
+          required: false
+          schema:
+            type: integer
+            default: 128
+        - name: page
+          in: query
+          description: The number of releases to skip before starting to collect the result set.
+          required: false
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Returns a paginated list of all releases for the specified project.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SimplifiedReleasePagingObject"
+        "400":
+          description: Bad Request. The request parameters are invalid.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "404":
+          description: Not Found. The specified project does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "409":
+          description: Forbidden. The user does not have permission to view this project.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "429": { $ref: "#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+      security:
+        - SessionToken: []
+        - {}
+      tags:
+        - Projects
+
+    post:
+      description: |
+        Creates a new release for the given project.
+
+        Requires a valid authentication token and the currently authenticated user must be a member of the project with sufficient permissions to add a release to it.
+      parameters:
+        - name: game_slug
+          in: path
+          description: The slug of the game to which the project belongs.
+          required: true
+          schema:
+            type: string
+        - name: project_slug
+          in: path
+          description: The slug of the project for which to retrieve releases.
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserUpdaterObject"
+      responses:
+        "201":
+          description: Returns the newly created release.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimplifiedReleaseObject"
+        "400":
+          description: Bad Request. The request body is invalid or missing required fields.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403":
+          description: Forbidden. The user does not have permission to create a new release for this project.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "404":
+          description: Not Found. The specified project does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "409":
+          description: Conflict. A release with the same version already exists for this project.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModnookError"
+        "429": { $ref: "#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+      tags:
+        - Projects
+
+  # /{game_slug}/projects/{project_slug}/releases/{release_id}:
+  #   get:
+  #     tags:
+  #       - Projects
+
+  #   patch:
+  #     tags:
+  #       - Projects
+
+  #   delete:
+  #     tags:
+  #       - Projects
+
+  # /{game_slug}/projects/{project_slug}/members:
+  #   get:
+  #     tags:
+  #       - Projects
+
+  #   post:
+  #     tags:
+  #       - Projects
+
+  #   patch:
+  #     tags:
+  #       - Projects
+
+  #   delete:
+  #     tags:
+  #       - Projects
+
+components:
+  schemas:
+    PagingObjectBase:
+      type: object
+      properties:
+        href:
+          type: string
+          format: uri
+          description: The full URL of the current API request that produced this page of results.
+
+        limit:
+          type: integer
+          minimum: 1
+          description: The maximum number of items returned in this response page.
+
+        next:
+          type: string
+          format: uri
+          description: The full URL of the next API request that will produce the next page of results.
+
+        offset:
+          type: integer
+          minimum: 0
+          description: The index of the first item returned in this response page.
+
+        previous:
+          type: string
+          format: uri
+          description: The full URL of the previous API request that produced the previous page of results.
+
+        total:
+          type: integer
+          description: The total number of items available across all pages.
+
+    UserRole:
+      type: string
+      enum:
+        - User
+        - Helper
+        - Moderator
+        - Admin
+
+    UserUpdaterObject:
+      type: object
+      properties:
+        displayname:
+          type: string
+        username:
+          type: string
+        bio:
+          type: string
+        avatar_url:
+          type: string
+          format: uri
+
+    SimplifiedUserObject:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        displayname:
+          type: string
+        avatar_url:
+          type: string
+          format: uri
+        bio:
+          type: string
+        role:
+          $ref: "#/components/schemas/UserRole"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    SimplifiedUserPagingObject:
+      allOf:
+        - $ref: "#/components/schemas/PagingObjectBase"
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/SimplifiedUserObject"
+
+    UserObject:
+      allOf:
+        - $ref: "#/components/schemas/SimplifiedUserObject"
+        - type: object
+          properties:
+            email:
+              type: string
+              format: email
+
+    ProjectTypeObject:
+      type: object
+      properties:
+        project_type_id:
+          type: string
+          format: uuid
+        game_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+        schema:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      description: A type of project that can be created for a game. For example in the context of minecraft a project could be a Mod, a Resource Pack, Datapack, etc...
+
+    ProjectTypeUpdaterObject:
+      type: object
+      properties:
+        name:
+          type: string
+        schema:
+          type: string
+
+    ProjectTypeBuilderObject:
+      type: object
+      required:
+        - name
+        - schema
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+        schema:
+          type: string
+
+    ProjectTypePagingObject:
+      allOf:
+        - $ref: "#/components/schemas/PagingObjectBase"
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/ProjectTypeObject"
+
+    SimplifiedGameObject:
+      type: object
+      properties:
+        game_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+        project_count:
+          type: integer
+        card_url:
+          type: string
+          format: uri
+        banner_url:
+          type: string
+          format: uri
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    SimplifiedGamePagingObject:
+      allOf:
+        - $ref: "#/components/schemas/PagingObjectBase"
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/SimplifiedGameObject"
+
+    GameObject:
+      type: object
+      properties:
+        game_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+        mod_count:
+          type: integer
+        project_count:
+          type: integer
+        card_url:
+          type: string
+          format: uri
+        project_types:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProjectTypeObject"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    GameUpdaterObject:
+      type: object
+      properties:
+        name:
+          type: string
+        card_url:
+          type: string
+          format: uri
+        banner_url:
+          type: string
+          format: uri
+
+    GameBuilderObject:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+        card_url:
+          type: string
+          format: uri
+        banner_url:
+          type: string
+          format: uri
+
+    SimplifiedOrganizationObject:
+      type: object
+      properties:
+        organization_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+        avatar_url:
+          type: string
+          format: uri
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    OrganizationObject:
+      allOf:
+        - $ref: "#/components/schemas/SimplifiedOrganizationObject"
+        - type: object
+          properties:
+            members:
+              type: array
+              items:
+                $ref: "#/components/schemas/OrganizationMemberObject"
+
+    OrganizationRole:
+      type: string
+      enum:
+        - Owner
+        - Admin
+        - Maintainer
+
+    SimplifiedOrganizationMemberObject:
+      type: object
+      properties:
+        organization_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        role:
+          $ref: "#/components/schemas/OrganizationRole"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    OrganizationMemberObject:
+      allOf:
+        - $ref: "#/components/schemas/SimplifiedOrganizationMemberObject"
+        - type: object
+          properties:
+            user:
+              $ref: "#/components/schemas/SimplifiedUserObject"
+
+    SimplifiedProjectObject:
+      type: object
+      properties:
+        project_id:
+          type: string
+          format: uuid
+        game_id:
+          type: string
+          format: uuid
+        project_type_id:
+          type: string
+          format: uuid
+        logo_url:
+          type: string
+          format: uri
+        owner_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+        download_count:
+          type: integer
+        follower_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    SimplifiedProjectPagingObject:
+      allOf:
+        - $ref: "#/components/schemas/PagingObjectBase"
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/SimplifiedProjectObject"
+
+    ProjectBuilderObject:
+      type: object
+      required:
+        - name
+        - project_type_id
+        - logo_url
+        - description
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+        project_type_id:
+          type: string
+          format: uuid
+        logo_url:
+          type: string
+          format: uri
+
+    ProjectUpdaterObject:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        project_type_id:
+          type: string
+          format: uuid
+        logo_url:
+          type: string
+          format: uri
+
+    ProjectObject:
+      allOf:
+        - $ref: "#/components/schemas/SimplifiedProjectObject"
+        - type: object
+          properties:
+            organisations:
+              type: array
+              items:
+                $ref: "#/components/schemas/OrganizationObject"
+            members:
+              type: array
+              items:
+                $ref: "#/components/schemas/ProjectMemberObject"
+
+    ProjectPagingObject:
+      allOf:
+        - $ref: "#/components/schemas/PagingObjectBase"
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/ProjectObject"
+
+    SimplifiedReleaseObject:
+      type: object
+      properties:
+        release_id:
+          type: string
+          format: uuid
+        project_id:
+          type: string
+          format: uuid
+        version:
+          type: string
+        description:
+          type: string
+        download_url:
+          type: string
+          format: uri
+        metadata:
+          type: object
+          additionalProperties: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    SimplifiedReleasePagingObject:
+      allOf:
+        - $ref: "#/components/schemas/PagingObjectBase"
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/SimplifiedReleaseObject"
+
+    ReleaseObject:
+      allOf:
+        - $ref: "#/components/schemas/SimplifiedReleaseObject"
+        - type: object
+          properties:
+            project:
+              $ref: "#/components/schemas/SimplifiedProjectObject"
+
+    ReleasePagingObject:
+      allOf:
+        - $ref: "#/components/schemas/PagingObjectBase"
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/ReleaseObject"
+
+    ReleaseBuilderObject:
+      type: object
+      properties:
+        version:
+          type: string
+        description:
+          type: string
+        download_url:
+          type: string
+          format: uri
+        metadata:
+          type: object
+          additionalProperties: true
+
+    ReleaseUpdaterObject:
+      type: object
+      properties:
+        version:
+          type: string
+        description:
+          type: string
+        download_url:
+          type: string
+          format: uri
+        metadata:
+          type: object
+          additionalProperties: true
+
+    ProjectMemberRole:
+      type: string
+      enum:
+        - Owner
+        - Admin
+        - Maintainer
+
+    SimplifiedProjectMemberObject:
+      type: object
+      properties:
+        project_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        role:
+          $ref: "#/components/schemas/ProjectMemberRole"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ProjectMemberObject:
+      allOf:
+        - $ref: "#/components/schemas/SimplifiedProjectMemberObject"
+        - type: object
+          properties:
+            user:
+              $ref: "#/components/schemas/SimplifiedUserObject"
+
+    ProjectReleaseNotification:
+      type: object
+      properties:
+        release:
+          $ref: "#/components/schemas/ReleaseObject"
+
+    ProjectInvitationNotification:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            project:
+              $ref: "#/components/schemas/SimplifiedProjectObject"
+            inviter:
+              $ref: "#/components/schemas/SimplifiedUserObject"
+
+    OrganizationInvitationNotification:
+      properties:
+        data:
+          type: object
+          properties:
+            organization:
+              $ref: "#/components/schemas/SimplifiedOrganizationObject"
+            inviter:
+              $ref: "#/components/schemas/SimplifiedUserObject"
+
+    NotificationActionObject:
+      type: object
+      properties:
+        action:
+          type: string
+        url:
+          type: string
+          format: uri
+
+    NotificationObject:
+      type: object
+      properties:
+        notification_id:
+          type: string
+          format: uuid
+        type:
+          type: string
+        read:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        actions:
+          type: array
+          items:
+            $ref: "#/components/schemas/NotificationActionObject"
+        data:
+          oneOf:
+            - $ref: "#/components/schemas/ProjectReleaseNotification"
+            - $ref: "#/components/schemas/ProjectInvitationNotification"
+            - $ref: "#/components/schemas/OrganizationInvitationNotification"
+          discriminator:
+            propertyName: type
+            mapping:
+              project.release.v1: "#/components/schemas/ProjectReleaseNotification"
+              project.invite.v1: "#/components/schemas/ProjectInvitationNotification"
+              organization.invite.v1: "#/components/schemas/OrganizationInvitationNotification"
+
+    NotificationPagingObject:
+      allOf:
+        - $ref: "#/components/schemas/PagingObjectBase"
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/NotificationObject"
+
+    ErrorCode:
+      type: string
+      enum:
+        - INVALID_REQUEST
+        - UNAUTHORIZED
+        - FORBIDDEN
+        - MOD_NOT_FOUND
+        - VALIDATION_FAILED
+        - RATE_LIMITED
+        - INTERNAL_ERROR
+
+    ModnookError:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+            - path
+            - trace_id
+          properties:
+            code:
+              $ref: "#/components/schemas/ErrorCode"
+            message:
+              type: string
+              example: "The requested mod was not found."
+            path:
+              type: string
+              example: "/api/v1/mods/example"
+            details:
+              type: array
+              items:
+                type: object
+                properties:
+                  field:
+                    type: string
+                    example: "mod_slug"
+                  issue:
+                    type: string
+                    example: "Mod slug is invalid."
+            trace_id:
+              type: string
+              example: "trace-123"
+
+  responses:
+    Unauthorized:
+      description: Unauthorized. The user is not authenticated.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ModnookError"
+
+    RateLimitExceeded:
+      description: Too Many Requests. The user has exceeded the rate limit.
+      headers:
+        Retry-After:
+          description: Number of seconds until the client should retry.
+          schema:
+            type: integer
+
+        RateLimit-Limit:
+          description: Maximum number of requests allowed in the current window.
+          schema:
+            type: integer
+
+        RateLimit-Remaining:
+          description: Number of requests remaining in the current window.
+          schema:
+            type: integer
+
+        RateLimit-Reset:
+          description: Time when the rate limit resets as a Unix timestamp.
+          schema:
+            type: integer
+
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ModnookError"
+
+    InternalServerError:
+      description: Internal server error. An unexpected error occurred on the server.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ModnookError"
+
+  securitySchemes:
+    SessionToken:
+      type: apiKey
+      in: cookie
+      name: modnook_session
+    AccessToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
