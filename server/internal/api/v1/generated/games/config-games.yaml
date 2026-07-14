@@ -1,0 +1,9 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/oapi-codegen/oapi-codegen/v2.7.2/configuration-schema.json
+package: api
+output: games/games.gen.go
+generate:
+  models: true
+  chi-server: true
+  strict-server: true
+import-mapping:
+  common.yaml: "github.com/modnook/modnook/http/openapi/v1/common"
