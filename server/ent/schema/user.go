@@ -5,7 +5,9 @@ import (
 	"time"
 
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/field"
+	"entgo.io/ent/schema/index"
 
 	"github.com/google/uuid"
 )
@@ -75,5 +77,15 @@ func (User) Edges() []ent.Edge {
 }
 
 func (User) Indexes() []ent.Index {
-	return []ent.Index{}
+	return []ent.Index{
+		index.Fields("displayname").
+			StorageKey("idx_user_displayname").
+			Annotations(entsql.IndexType("GIN")),
+
+		index.Fields("username").Unique(),
+
+		index.Fields("email").Unique(),
+
+		index.Fields("phone_number").Unique(),
+	}
 }
