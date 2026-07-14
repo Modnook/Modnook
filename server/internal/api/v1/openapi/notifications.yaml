@@ -1,0 +1,245 @@
+openapi: "3.0.3"
+info:
+  title: Modnook API - Notifications
+  version: "1.0"
+servers:
+  - url: http://localhost:3000/api/v1
+
+paths:
+  /notifications:
+    get:
+      description: |
+        Retrieves a list of notifications for the currently authenticated user.
+
+        Requires a valid authentication token.
+      parameters:
+        - name: limit
+          in: query
+          description: The maximum number of notifications to return in the response.
+          required: false
+          schema:
+            type: integer
+            default: 128
+        - name: page
+          in: query
+          description: The number of notifications to skip before starting to collect the result set.
+          required: false
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Returns a list of notifications for the currently authenticated user.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationPagingObject"
+        "400":
+          description: Bad Request. The request parameters are invalid.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "401": { $ref: "common.yaml#/components/responses/Unauthorized" }
+        "429": { $ref: "common.yaml#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "common.yaml#/components/responses/InternalServerError" }
+      security:
+        - SessionToken: []
+      tags:
+        - Users
+        - Notifications
+
+  /notifications/read:
+    put:
+      description: |
+        Marks all notifications for the currently authenticated user as read.
+
+        Requires a valid authentication token.
+      responses:
+        "204":
+          description: No Content. All notifications have been marked as read.
+        "400":
+          description: Bad Request. The request parameters are invalid.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "401": { $ref: "common.yaml#/components/responses/Unauthorized" }
+        "429": { $ref: "common.yaml#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "common.yaml#/components/responses/InternalServerError" }
+      security:
+        - SessionToken: []
+      tags:
+        - Users
+        - Notifications
+
+  /notifications/{notification_id}:
+    get:
+      description: |
+        Retrieves the details of a specific notification for the currently authenticated user.
+
+        Requires a valid authentication token.
+      parameters:
+        - name: notification_id
+          in: path
+          description: The unique identifier of the notification to retrieve.
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Returns the details of the specified notification.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationObject"
+        "400":
+          description: Bad Request. The request parameters are invalid.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "401": { $ref: "common.yaml#/components/responses/Unauthorized" }
+        "404":
+          description: Not Found. The specified notification does not exist for the user.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "429": { $ref: "common.yaml#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "common.yaml#/components/responses/InternalServerError" }
+      security:
+        - SessionToken: []
+      tags:
+        - Users
+        - Notifications
+
+  /notifications/{notification_id}/read:
+    put:
+      description: |
+        Marks a specific notification as read for the currently authenticated user.
+
+        Requires a valid authentication token.
+      parameters:
+        - name: notification_id
+          in: path
+          description: The unique identifier of the notification to mark as read.
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: No Content. The notification has been marked as read.
+        "400":
+          description: Bad Request. The request parameters are invalid.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "401": { $ref: "common.yaml#/components/responses/Unauthorized" }
+        "404":
+          description: Not Found. The specified notification does not exist for the user.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "429": { $ref: "common.yaml#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "common.yaml#/components/responses/InternalServerError" }
+      security:
+        - SessionToken: []
+      tags:
+        - Users
+        - Notifications
+
+components:
+  schemas:
+    ProjectReleaseNotification:
+      type: object
+      properties:
+        release:
+          $ref: "projects.yaml#/components/schemas/ReleaseObject"
+
+    ProjectInvitationNotification:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/ProjectInvitationData"
+
+    ProjectInvitationData:
+      type: object
+      properties:
+        project:
+          $ref: "projects.yaml#/components/schemas/SimplifiedProjectObject"
+        inviter:
+          $ref: "users.yaml#/components/schemas/SimplifiedUserObject"
+
+    OrganizationInvitationNotification:
+      properties:
+        data:
+          type: object
+          properties:
+            organization:
+              $ref: "organizations.yaml#/components/schemas/SimplifiedOrganizationObject"
+            inviter:
+              $ref: "users.yaml#/components/schemas/SimplifiedUserObject"
+
+    NotificationActionObject:
+      type: object
+      properties:
+        action:
+          type: string
+        url:
+          type: string
+          format: uri
+
+    NotificationObject:
+      type: object
+      properties:
+        notification_id:
+          type: string
+          format: uuid
+        type:
+          type: string
+        read:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        actions:
+          type: array
+          items:
+            $ref: "#/components/schemas/NotificationActionObject"
+        data:
+          oneOf:
+            - $ref: "#/components/schemas/ProjectReleaseNotification"
+            - $ref: "#/components/schemas/ProjectInvitationNotification"
+            - $ref: "#/components/schemas/OrganizationInvitationNotification"
+          discriminator:
+            propertyName: type
+            mapping:
+              project.release.v1: "#/components/schemas/ProjectReleaseNotification"
+              project.invite.v1: "#/components/schemas/ProjectInvitationNotification"
+              organization.invite.v1: "#/components/schemas/OrganizationInvitationNotification"
+
+    NotificationPagingObject:
+      allOf:
+        - $ref: "common.yaml#/components/schemas/PagingObjectBase"
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/NotificationObject"
+
+  securitySchemes:
+    SessionToken:
+      type: apiKey
+      in: cookie
+      name: modnook_session
+    AccessToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

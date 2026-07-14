@@ -1,0 +1,487 @@
+openapi: "3.0.3"
+info:
+  title: Modnook API - Games
+  version: "1.0"
+servers:
+  - url: http://localhost:3000/api/v1
+
+paths:
+  /games:
+    get:
+      description: |
+        Retrieves a paginated list of all games available.
+      parameters:
+        - name: limit
+          in: query
+          description: The maximum number of games to return in the response.
+          required: false
+          schema:
+            type: integer
+            default: 128
+        - name: page
+          in: query
+          description: The number of games to skip before starting to collect the result set.
+          required: false
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Returns a paginated list of all games available.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SimplifiedGamePagingObject"
+        "400":
+          description: Bad Request. The request parameters are invalid.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "429": { $ref: "common.yaml#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "common.yaml#/components/responses/InternalServerError" }
+
+      tags:
+        - Games
+
+    post:
+      description: |
+        Creates a new game. Requires a valid authentication token and the actioning user must have an `Admin` or `Moderator` role.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GameBuilderObject"
+      responses:
+        "201":
+          description: Returns the newly created game.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimplifiedGameObject"
+        "400":
+          description: Bad Request. The request body is invalid or missing required fields.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "401": { $ref: "common.yaml#/components/responses/Unauthorized" }
+        "403":
+          description: Forbidden. The user does not have permission to create a new game.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "409":
+          description: Conflict. A game with the same slug already exists.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "429": { $ref: "common.yaml#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "common.yaml#/components/responses/InternalServerError" }
+      security:
+        - SessionToken: []
+      tags:
+        - Games
+
+  /games/{game_slug}:
+    get:
+      description: |
+        Retrieves the details of a specific game by its slug or ID.
+      parameters:
+        - name: game_slug
+          in: path
+          description: The slug of the game to retrieve.
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Returns the details of the specified game.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GameObject"
+        "400":
+          description: Bad Request. The request parameters are invalid.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "404":
+          description: Not Found. The specified game does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "429": { $ref: "common.yaml#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "common.yaml#/components/responses/InternalServerError" }
+      tags:
+        - Games
+
+    patch:
+      description: |
+        Updates the details of a specific game by its slug or ID. 
+
+        Requires a valid authentication token and the actioning user must have an `Admin` or `Moderator` role.
+      parameters:
+        - name: game_slug
+          in: path
+          description: The slug or ID of the game to update.
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GameBuilderObject"
+      responses:
+        "200":
+          description: Returns the updated game details.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimplifiedGameObject"
+        "400":
+          description: Bad Request. The request body is invalid or missing required fields.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "401": { $ref: "common.yaml#/components/responses/Unauthorized" }
+        "403":
+          description: Forbidden. The user does not have permission to update this game.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "404":
+          description: Not Found. The specified game does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "429": { $ref: "common.yaml#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "common.yaml#/components/responses/InternalServerError" }
+      security:
+        - SessionToken: []
+      tags:
+        - Games
+
+  /games/{game_slug}/project-types:
+    get:
+      description: |
+        Retrieves a list of project types associated with a specific game by its slug or ID.
+      parameters:
+        - name: game_slug
+          in: path
+          description: The slug or ID of the game for which to retrieve project types.
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: The maximum number of project types to return in the response.
+          required: false
+          schema:
+            type: integer
+            default: 128
+        - name: page
+          in: query
+          description: The number of project types to skip before starting to collect the result set.
+          required: false
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Returns a list of project types associated with the specified game.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProjectTypePagingObject"
+        "400":
+          description: Bad Request. The request parameters are invalid.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "404":
+          description: Not Found. The specified game does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "429": { $ref: "common.yaml#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "common.yaml#/components/responses/InternalServerError" }
+      tags:
+        - Games
+
+    patch:
+      description: |
+        Updates the list of project types associated with a specific game by its slug or ID. 
+
+        Requires a valid authentication token and the actioning user must have an `Admin` or `Moderator` role.
+      parameters:
+        - name: game_slug
+          in: path
+          description: The slug or ID of the game for which to update project types.
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: "#/components/schemas/ProjectTypeObject"
+      responses:
+        "200":
+          description: Returns the updated list of project types associated with the specified game.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProjectTypePagingObject"
+        "400":
+          description: Bad Request. The request body is invalid or missing required fields.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "401": { $ref: "common.yaml#/components/responses/Unauthorized" }
+        "403":
+          description: Forbidden. The user does not have permission to update project types for this game.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "404":
+          description: Not Found. The specified game does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "429": { $ref: "common.yaml#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "common.yaml#/components/responses/InternalServerError" }
+      tags:
+        - Games
+
+    post:
+      description: |
+        Creates a new project type for a specific game by its slug or ID. 
+
+        Requires a valid authentication token and the actioning user must have an `Admin` or `Moderator` role.
+      parameters:
+        - name: game_slug
+          in: path
+          description: The slug or ID of the game for which to create a new project type.
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectTypeBuilderObject"
+      responses:
+        "201":
+          description: Returns the created project type.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectTypeObject"
+        "400":
+          description: Bad Request. The request body is invalid or missing required fields.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "401": { $ref: "common.yaml#/components/responses/Unauthorized" }
+        "403":
+          description: Forbidden. The user does not have permission to create project types for this game.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "404":
+          description: Not Found. The specified game does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "409":
+          description: Conflict. A project type with the same slug already exists for this game.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "429": { $ref: "common.yaml#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "common.yaml#/components/responses/InternalServerError" }
+      tags:
+        - Games
+
+components:
+  schemas:
+    ProjectTypeObject:
+      type: object
+      properties:
+        project_type_id:
+          type: string
+          format: uuid
+        game_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+        schema:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      description: A type of project that can be created for a game. For example in the context of minecraft a project could be a Mod, a Resource Pack, Datapack, etc...
+
+    ProjectTypeUpdaterObject:
+      type: object
+      properties:
+        name:
+          type: string
+        schema:
+          type: string
+
+    ProjectTypeBuilderObject:
+      type: object
+      required:
+        - name
+        - schema
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+        schema:
+          type: string
+
+    ProjectTypePagingObject:
+      allOf:
+        - $ref: "common.yaml#/components/schemas/PagingObjectBase"
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/ProjectTypeObject"
+
+    SimplifiedGameObject:
+      type: object
+      properties:
+        game_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+        project_count:
+          type: integer
+        card_url:
+          type: string
+          format: uri
+        banner_url:
+          type: string
+          format: uri
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    SimplifiedGamePagingObject:
+      allOf:
+        - $ref: "common.yaml#/components/schemas/PagingObjectBase"
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/SimplifiedGameObject"
+
+    GameObject:
+      type: object
+      properties:
+        game_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+        mod_count:
+          type: integer
+        project_count:
+          type: integer
+        card_url:
+          type: string
+          format: uri
+        project_types:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProjectTypeObject"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    GameUpdaterObject:
+      type: object
+      properties:
+        name:
+          type: string
+        card_url:
+          type: string
+          format: uri
+        banner_url:
+          type: string
+          format: uri
+
+    GameBuilderObject:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+        card_url:
+          type: string
+          format: uri
+        banner_url:
+          type: string
+          format: uri
+
+  securitySchemes:
+    SessionToken:
+      type: apiKey
+      in: cookie
+      name: modnook_session
+    AccessToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

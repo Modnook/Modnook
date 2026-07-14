@@ -1,0 +1,75 @@
+openapi: "3.0.3"
+info:
+  title: Modnook API - Organizations
+  version: "1.0"
+servers:
+  - url: http://localhost:3000/api/v1
+
+paths: {}
+
+components:
+  schemas:
+    SimplifiedOrganizationObject:
+      type: object
+      properties:
+        organization_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+        avatar_url:
+          type: string
+          format: uri
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    OrganizationObject:
+      allOf:
+        - $ref: "#/components/schemas/SimplifiedOrganizationObject"
+        - type: object
+          properties:
+            members:
+              type: array
+              items:
+                $ref: "#/components/schemas/OrganizationMemberObject"
+
+    OrganizationRole:
+      type: string
+      enum:
+        - Owner
+        - Admin
+        - Maintainer
+
+    SimplifiedOrganizationMemberObject:
+      type: object
+      properties:
+        organization_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        role:
+          $ref: "#/components/schemas/OrganizationRole"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    OrganizationMemberObject:
+      allOf:
+        - $ref: "#/components/schemas/SimplifiedOrganizationMemberObject"
+        - type: object
+          properties:
+            user:
+              $ref: "users.yaml#/components/schemas/SimplifiedUserObject"

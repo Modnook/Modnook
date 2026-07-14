@@ -1,0 +1,769 @@
+openapi: "3.0.3"
+info:
+  title: Modnook API - Projects
+  version: "1.0"
+servers:
+  - url: http://localhost:3000/api/v1
+
+paths:
+  /{game_slug}/projects:
+    get:
+      description: |
+        Retrieves a paginated list of all projects available.
+
+        Note only active projects will be returned. Projects that have been deleted or are inactive will not be included in the response.
+      parameters:
+        - name: game_slug
+          in: path
+          description: The slug of the game to which the project belongs.
+          required: true
+          schema:
+            type: string
+        - name: query
+          in: query
+          description: A search query to filter projects by name or description.
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: The maximum number of projects to return in the response.
+          required: false
+          schema:
+            type: integer
+            default: 128
+        - name: page
+          in: query
+          description: The number of projects to skip before starting to collect the result set.
+          required: false
+          schema:
+            type: integer
+            default: 0
+        - in: query
+          name: filters
+          description: A set of filters to apply to the project list. The filters should be provided as key-value pairs, where the key is the filter name and the value is the filter value. For example, to filter projects by type, you could use `filters[project_type]=mod`.
+          schema:
+            type: object
+            additionalProperties:
+              type: string
+          style: form
+          explode: true
+      responses:
+        "200":
+          description: Returns a paginated list of all projects available.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SimplifiedProjectPagingObject"
+        "400":
+          description: Bad Request. The request parameters are invalid.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "429": { $ref: "common.yaml#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "common.yaml#/components/responses/InternalServerError" }
+      tags:
+        - Projects
+
+    post:
+      description: |
+        Creates a new project for the specified game.
+
+        Requires a valid authentication token.
+      parameters:
+        - name: game_slug
+          in: path
+          description: The slug of the game to which the project belongs.
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectBuilderObject"
+      responses:
+        "201":
+          description: Returns the newly created project.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimplifiedProjectObject"
+        "400":
+          description: Bad Request. The request body is invalid or missing required fields.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "401": { $ref: "common.yaml#/components/responses/Unauthorized" }
+        "403":
+          description: Forbidden. The user does not have permission to create a new project for this game.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "404":
+          description: Not Found. The specified game does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "409":
+          description: Conflict. A project with the same slug already exists for this game.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "429": { $ref: "common.yaml#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "common.yaml#/components/responses/InternalServerError" }
+      security:
+        - SessionToken: []
+      tags:
+        - Projects
+
+  /{game_slug}/projects/{project_slug}:
+    get:
+      description: |
+        Retrieves the details of a specific project by its slug or ID.
+
+        If the project is private, the currently authenticated user must be a member of the project to access its details or a `Helper`, `Moderator`, or `Admin`. Otherwise, a 403 Forbidden response will be returned.
+      parameters:
+        - name: game_slug
+          in: path
+          description: The slug of the game to which the project belongs.
+          required: true
+          schema:
+            type: string
+        - name: project_slug
+          in: path
+          description: The slug of the project to retrieve.
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Returns the details of the specified project.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectObject"
+        "400":
+          description: Bad Request. The request parameters are invalid.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "401": { $ref: "common.yaml#/components/responses/Unauthorized" }
+        "403":
+          description: Forbidden. The user does not have permission to access this project.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "404":
+          description: Not Found. The specified project does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "429": { $ref: "common.yaml#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "common.yaml#/components/responses/InternalServerError" }
+      security:
+        - SessionToken: []
+        - {}
+      tags:
+        - Projects
+
+    patch:
+      description: |
+        Updates the details of a specific project by its slug or ID.
+
+        Requires a valid authentication token and the currently authenticated user must be a member of the project with sufficient permissions to update it.
+      parameters:
+        - name: game_slug
+          in: path
+          description: The slug of the game to which the project belongs.
+          required: true
+          schema:
+            type: string
+        - name: project_slug
+          in: path
+          description: The slug of the project to update.
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectUpdaterObject"
+      responses:
+        "200":
+          description: Returns the updated project details.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimplifiedProjectObject"
+        "400":
+          description: Bad Request. The request body is invalid or missing required fields.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "401": { $ref: "common.yaml#/components/responses/Unauthorized" }
+        "403":
+          description: Forbidden. The user does not have permission to update this project.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "404":
+          description: Not Found. The specified project does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "429": { $ref: "common.yaml#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "common.yaml#/components/responses/InternalServerError" }
+      security:
+        - SessionToken: []
+      tags:
+        - Projects
+
+    delete:
+      description: |
+        Deletes a specific project by its slug or ID.
+
+        Requires a valid authentication token and the currently authenticated user must be a member of the project with sufficient permissions to delete it.
+      parameters:
+        - name: game_slug
+          in: path
+          description: The slug of the game to which the project belongs.
+          required: true
+          schema:
+            type: string
+        - name: project_slug
+          in: path
+          description: The slug of the project to delete.
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: No Content. The project has been successfully deleted.
+        "400":
+          description: Bad Request. The request parameters are invalid.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "401": { $ref: "common.yaml#/components/responses/Unauthorized" }
+        "403":
+          description: Forbidden. The user does not have permission to delete this project.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "404":
+          description: Not Found. The specified project does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "429": { $ref: "common.yaml#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "common.yaml#/components/responses/InternalServerError" }
+      security:
+        - SessionToken: []
+      tags:
+        - Projects
+
+  /{game_slug}/projects/{project_slug}/follow:
+    put:
+      description: |
+        Follows a specific project by its slug or ID.
+
+        Requires a valid authentication token.
+      parameters:
+        - name: game_slug
+          in: path
+          description: The slug of the game to which the project belongs.
+          required: true
+          schema:
+            type: string
+        - name: project_slug
+          in: path
+          description: The slug of the project to follow.
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: No Content. The project has been successfully followed.
+        "400":
+          description: Bad Request. The request parameters are invalid.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "401": { $ref: "common.yaml#/components/responses/Unauthorized" }
+        "403":
+          description: Forbidden. The user does not have permission to follow this project.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "404":
+          description: Not Found. The specified project does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "429": { $ref: "common.yaml#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "common.yaml#/components/responses/InternalServerError" }
+      security:
+        - SessionToken: []
+      tags:
+        - Projects
+
+  /{game_slug}/projects/{project_slug}/unfollow:
+    put:
+      description: |
+        Unfollows a specific project by its slug or ID.
+
+        Requires a valid authentication token.
+      parameters:
+        - name: game_slug
+          in: path
+          description: The slug of the game to which the project belongs.
+          required: true
+          schema:
+            type: string
+        - name: project_slug
+          in: path
+          description: The slug of the project to unfollow.
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: No Content. The project has been successfully unfollowed.
+        "400":
+          description: Bad Request. The request parameters are invalid.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "401": { $ref: "common.yaml#/components/responses/Unauthorized" }
+        "403":
+          description: Forbidden. The user does not have permission to unfollow this project.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "404":
+          description: Not Found. The specified project does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "429": { $ref: "common.yaml#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "common.yaml#/components/responses/InternalServerError" }
+      security:
+        - SessionToken: []
+      tags:
+        - Projects
+
+  /{game_slug}/projects/{project_slug}/releases:
+    get:
+      description: |
+        Retrieves a paginated list of all releases for a specific project by its slug or ID.
+
+        Note only active releases will be returned. Releases that have been deleted or are inactive will not be included in the response.
+      parameters:
+        - name: game_slug
+          in: path
+          description: The slug of the game to which the project belongs.
+          required: true
+          schema:
+            type: string
+        - name: project_slug
+          in: path
+          description: The slug of the project for which to retrieve releases.
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: The maximum number of releases to return in the response.
+          required: false
+          schema:
+            type: integer
+            default: 128
+        - name: page
+          in: query
+          description: The number of releases to skip before starting to collect the result set.
+          required: false
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Returns a paginated list of all releases for the specified project.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SimplifiedReleasePagingObject"
+        "400":
+          description: Bad Request. The request parameters are invalid.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "404":
+          description: Not Found. The specified project does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "409":
+          description: Forbidden. The user does not have permission to view this project.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "429": { $ref: "common.yaml#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "common.yaml#/components/responses/InternalServerError" }
+      security:
+        - SessionToken: []
+        - {}
+      tags:
+        - Projects
+
+    post:
+      description: |
+        Creates a new release for the given project.
+
+        Requires a valid authentication token and the currently authenticated user must be a member of the project with sufficient permissions to add a release to it.
+      parameters:
+        - name: game_slug
+          in: path
+          description: The slug of the game to which the project belongs.
+          required: true
+          schema:
+            type: string
+        - name: project_slug
+          in: path
+          description: The slug of the project for which to retrieve releases.
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "users.yaml#/components/schemas/UserUpdaterObject"
+      responses:
+        "201":
+          description: Returns the newly created release.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimplifiedReleaseObject"
+        "400":
+          description: Bad Request. The request body is invalid or missing required fields.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "401": { $ref: "common.yaml#/components/responses/Unauthorized" }
+        "403":
+          description: Forbidden. The user does not have permission to create a new release for this project.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "404":
+          description: Not Found. The specified project does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "409":
+          description: Conflict. A release with the same version already exists for this project.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "429": { $ref: "common.yaml#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "common.yaml#/components/responses/InternalServerError" }
+      tags:
+        - Projects
+
+  # /{game_slug}/projects/{project_slug}/releases/{release_id}:
+  #   get:
+  #     tags:
+  #       - Projects
+
+  #   patch:
+  #     tags:
+  #       - Projects
+
+  #   delete:
+  #     tags:
+  #       - Projects
+
+  # /{game_slug}/projects/{project_slug}/members:
+  #   get:
+  #     tags:
+  #       - Projects
+
+  #   post:
+  #     tags:
+  #       - Projects
+
+  #   patch:
+  #     tags:
+  #       - Projects
+
+  #   delete:
+  #     tags:
+  #       - Projects
+
+components:
+  schemas:
+    SimplifiedProjectObject:
+      type: object
+      properties:
+        project_id:
+          type: string
+          format: uuid
+        game_id:
+          type: string
+          format: uuid
+        project_type_id:
+          type: string
+          format: uuid
+        logo_url:
+          type: string
+          format: uri
+        owner_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+        download_count:
+          type: integer
+        follower_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    SimplifiedProjectPagingObject:
+      allOf:
+        - $ref: "common.yaml#/components/schemas/PagingObjectBase"
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/SimplifiedProjectObject"
+
+    ProjectBuilderObject:
+      type: object
+      required:
+        - name
+        - project_type_id
+        - logo_url
+        - description
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+        project_type_id:
+          type: string
+          format: uuid
+        logo_url:
+          type: string
+          format: uri
+
+    ProjectUpdaterObject:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        project_type_id:
+          type: string
+          format: uuid
+        logo_url:
+          type: string
+          format: uri
+
+    ProjectObject:
+      allOf:
+        - $ref: "#/components/schemas/SimplifiedProjectObject"
+        - type: object
+          properties:
+            organisations:
+              type: array
+              items:
+                $ref: "organizations.yaml#/components/schemas/OrganizationObject"
+            members:
+              type: array
+              items:
+                $ref: "#/components/schemas/ProjectMemberObject"
+
+    ProjectPagingObject:
+      allOf:
+        - $ref: "common.yaml#/components/schemas/PagingObjectBase"
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/ProjectObject"
+
+    SimplifiedReleaseObject:
+      type: object
+      properties:
+        release_id:
+          type: string
+          format: uuid
+        project_id:
+          type: string
+          format: uuid
+        version:
+          type: string
+        description:
+          type: string
+        download_url:
+          type: string
+          format: uri
+        metadata:
+          type: object
+          additionalProperties: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    SimplifiedReleasePagingObject:
+      allOf:
+        - $ref: "common.yaml#/components/schemas/PagingObjectBase"
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/SimplifiedReleaseObject"
+
+    ReleaseObject:
+      allOf:
+        - $ref: "#/components/schemas/SimplifiedReleaseObject"
+        - type: object
+          properties:
+            project:
+              $ref: "#/components/schemas/SimplifiedProjectObject"
+
+    ReleasePagingObject:
+      allOf:
+        - $ref: "common.yaml#/components/schemas/PagingObjectBase"
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/ReleaseObject"
+
+    ReleaseBuilderObject:
+      type: object
+      properties:
+        version:
+          type: string
+        description:
+          type: string
+        download_url:
+          type: string
+          format: uri
+        metadata:
+          type: object
+          additionalProperties: true
+
+    ReleaseUpdaterObject:
+      type: object
+      properties:
+        version:
+          type: string
+        description:
+          type: string
+        download_url:
+          type: string
+          format: uri
+        metadata:
+          type: object
+          additionalProperties: true
+
+    ProjectMemberRole:
+      type: string
+      enum:
+        - Owner
+        - Admin
+        - Maintainer
+
+    SimplifiedProjectMemberObject:
+      type: object
+      properties:
+        project_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        role:
+          $ref: "#/components/schemas/ProjectMemberRole"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ProjectMemberObject:
+      allOf:
+        - $ref: "#/components/schemas/SimplifiedProjectMemberObject"
+        - type: object
+          properties:
+            user:
+              $ref: "users.yaml#/components/schemas/SimplifiedUserObject"
+
+  securitySchemes:
+    SessionToken:
+      type: apiKey
+      in: cookie
+      name: modnook_session
+    AccessToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

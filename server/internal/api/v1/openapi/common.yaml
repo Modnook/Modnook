@@ -1,0 +1,149 @@
+openapi: "3.0.3"
+info:
+  title: Modnook API - Common
+  version: "1.0"
+servers:
+  - url: http://localhost:3000/api/v1
+
+paths: {}
+
+components:
+  schemas:
+    PagingObjectBase:
+      type: object
+      required:
+        - href
+        - limit
+        - next
+        - offset
+        - previous
+        - total
+      properties:
+        href:
+          type: string
+          format: uri
+          description: The full URL of the current API request that produced this page of results.
+
+        limit:
+          type: integer
+          minimum: 1
+          description: The maximum number of items returned in this response page.
+
+        next:
+          type: string
+          format: uri
+          description: The full URL of the next API request that will produce the next page of results.
+
+        offset:
+          type: integer
+          minimum: 0
+          description: The index of the first item returned in this response page.
+
+        previous:
+          type: string
+          format: uri
+          description: The full URL of the previous API request that produced the previous page of results.
+
+        total:
+          type: integer
+          description: The total number of items available across all pages.
+
+    ErrorCode:
+      type: string
+      enum:
+        - INVALID_REQUEST
+        - UNAUTHORIZED
+        - FORBIDDEN
+        - MOD_NOT_FOUND
+        - VALIDATION_FAILED
+        - RATE_LIMITED
+        - INTERNAL_ERROR
+
+    ModnookError:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+            - path
+            - trace_id
+          properties:
+            code:
+              $ref: "#/components/schemas/ErrorCode"
+            message:
+              type: string
+              example: "The requested mod was not found."
+            path:
+              type: string
+              example: "/api/v1/mods/example"
+            details:
+              type: array
+              items:
+                type: object
+                properties:
+                  field:
+                    type: string
+                    example: "mod_slug"
+                  issue:
+                    type: string
+                    example: "Mod slug is invalid."
+            trace_id:
+              type: string
+              example: "trace-123"
+
+  responses:
+    Unauthorized:
+      description: Unauthorized. The user is not authenticated.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ModnookError"
+
+    RateLimitExceeded:
+      description: Too Many Requests. The user has exceeded the rate limit.
+      headers:
+        Retry-After:
+          description: Number of seconds until the client should retry.
+          schema:
+            type: integer
+
+        RateLimit-Limit:
+          description: Maximum number of requests allowed in the current window.
+          schema:
+            type: integer
+
+        RateLimit-Remaining:
+          description: Number of requests remaining in the current window.
+          schema:
+            type: integer
+
+        RateLimit-Reset:
+          description: Time when the rate limit resets as a Unix timestamp.
+          schema:
+            type: integer
+
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ModnookError"
+
+    InternalServerError:
+      description: Internal server error. An unexpected error occurred on the server.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ModnookError"
+
+  securitySchemes:
+    SessionToken:
+      type: apiKey
+      in: cookie
+      name: modnook_session
+    AccessToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

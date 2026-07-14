@@ -1,0 +1,423 @@
+openapi: "3.0.3"
+info:
+  title: Modnook API - Users
+  version: "1.0"
+servers:
+  - url: http://localhost:3000/api/v1
+
+paths:
+  /users/@me:
+    get:
+      description: |
+        Retrieves the currently authenticated user's information. 
+
+        To retrieve another user's information, use the `GET /users/{user_slug}` endpoint.
+
+        Requires a valid authentication token.
+      responses:
+        "200":
+          description: Returns the currently authenticated user's information.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserObject"
+        "401": { $ref: "common.yaml#/components/responses/Unauthorized" }
+        "429": { $ref: "common.yaml#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "common.yaml#/components/responses/InternalServerError" }
+      security:
+        - SessionToken: []
+      tags:
+        - Users
+
+    patch:
+      description: |
+        Updates the currently authenticated user's information.
+
+        To modify another user's information i.e for administrative purposes, use the `PATCH /users/{user_slug}` endpoint.
+
+        Requires a valid authentication token.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserUpdaterObject"
+      responses:
+        "200":
+          description: Returns the updated user's information.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserObject"
+        "400":
+          description: Bad Request. The request body is invalid or missing required fields.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "401": { $ref: "common.yaml#/components/responses/Unauthorized" }
+        "429": { $ref: "common.yaml#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "common.yaml#/components/responses/InternalServerError" }
+      security:
+        - SessionToken: []
+      tags:
+        - Users
+
+    delete:
+      description: |
+        Deletes the currently authenticated user's account. Note this cannot be undone
+
+        Requires a valid authentication token.
+      parameters:
+        - name: delete_projects
+          in: query
+          description: If true, all projects owned by the user will also be deleted.
+          required: false
+          schema:
+            type: boolean
+      responses:
+        "204":
+          description: No Content. The user's account has been successfully deleted.
+        "401": { $ref: "common.yaml#/components/responses/Unauthorized" }
+        "429": { $ref: "common.yaml#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "common.yaml#/components/responses/InternalServerError" }
+      security:
+        - SessionToken: []
+      tags:
+        - Users
+
+  /users/search:
+    get:
+      description: |
+        Searches for users by username or display name. Returns a list of users matching the search query.
+      parameters:
+        - name: query
+          in: query
+          description: The search query to find users by username or display name.
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: The maximum number of users to return in the search results.
+          required: false
+          schema:
+            type: integer
+            default: 128
+        - name: page
+          in: query
+          description: The number of users to skip before starting to collect the result set.
+          required: false
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Returns a list of users matching the search query.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimplifiedUserPagingObject"
+        "401": { $ref: "common.yaml#/components/responses/Unauthorized" }
+        "429": { $ref: "common.yaml#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "common.yaml#/components/responses/InternalServerError" }
+      tags:
+        - Users
+
+  /users/{user_slug}:
+    get:
+      description: |
+        Retrieves the specified user's information by their slug or user id
+      parameters:
+        - name: user_slug
+          in: path
+          description: The slug or user id of the user to retrieve.
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Returns the specified user's information.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimplifiedUserObject"
+        "400":
+          description: Bad Request. The request parameters are invalid.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "404":
+          description: Not Found. The specified user does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "429": { $ref: "common.yaml#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "common.yaml#/components/responses/InternalServerError" }
+      tags:
+        - Users
+
+    patch:
+      description: |
+        Updates the specified user's information by their slug or user id. 
+
+        Requires a valid authentication token and the actioning user must a `Moderator` or `Admin` role and have higher privileges than the user being updated. For example a `Moderator` cannot update an `Admin` user's information.
+      parameters:
+        - name: user_slug
+          in: path
+          description: The slug or user id of the user to update.
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserUpdaterObject"
+      responses:
+        "200":
+          description: Returns the updated user's information.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimplifiedUserObject"
+        "400":
+          description: Bad Request. The request body is invalid or missing required fields.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "401": { $ref: "common.yaml#/components/responses/Unauthorized" }
+        "403":
+          description: Forbidden. The user does not have permission to update this user's information.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "404":
+          description: Not Found. The specified user does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "429": { $ref: "common.yaml#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "common.yaml#/components/responses/InternalServerError" }
+      security:
+        - SessionToken: []
+      tags:
+        - Users
+
+    delete:
+      description: |
+        Deletes the specified user's account by their slug or user id. 
+
+        Requires a valid authentication token and the actioning user must a `Moderator` or `Admin` role and have higher privileges than the user being deleted. For example a `Moderator` cannot delete an `Admin` user's account.
+      parameters:
+        - name: user_slug
+          in: path
+          description: The slug or user id of the user to delete.
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: No Content. The user's account has been successfully deleted.
+        "400":
+          description: Bad Request. The request parameters are invalid.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "401": { $ref: "common.yaml#/components/responses/Unauthorized" }
+        "403":
+          description: Forbidden. The user does not have permission to delete this user's account.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "404":
+          description: Not Found. The specified user does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "429": { $ref: "common.yaml#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "common.yaml#/components/responses/InternalServerError" }
+      security:
+        - SessionToken: []
+      tags:
+        - Users
+
+  /users/{user_slug}/projects:
+    get:
+      description: |
+        Retrieves a list of projects owned by the specified user by their slug or user id.
+      parameters:
+        - name: user_slug
+          in: path
+          description: The slug or user id of the user whose projects to retrieve.
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: The maximum number of users to return in the search results.
+          required: false
+          schema:
+            type: integer
+            default: 128
+        - name: page
+          in: query
+          description: The number of users to skip before starting to collect the result set.
+          required: false
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Returns a list of projects owned by the specified user.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimplifiedUserPagingObject"
+        "400":
+          description: Bad Request. The request parameters are invalid.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "404":
+          description: Not Found. The specified user does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/components/schemas/ModnookError"
+        "429": { $ref: "common.yaml#/components/responses/RateLimitExceeded" }
+        "500": { $ref: "common.yaml#/components/responses/InternalServerError" }
+      tags:
+        - Users
+        - Projects
+
+components:
+  schemas:
+    UserRole:
+      type: string
+      enum:
+        - User
+        - Helper
+        - Moderator
+        - Admin
+
+    UserUpdaterObject:
+      type: object
+      properties:
+        displayname:
+          type: string
+        username:
+          type: string
+        bio:
+          type: string
+        avatar_url:
+          type: string
+          format: uri
+
+    SimplifiedUserObject:
+      type: object
+      required:
+        - user_id
+        - username
+        - displayname
+        - role
+        - created_at
+        - updated_at
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        displayname:
+          type: string
+        avatar_url:
+          type: string
+          format: uri
+        bio:
+          type: string
+        role:
+          $ref: "#/components/schemas/UserRole"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    SimplifiedUserPagingObject:
+      allOf:
+        - $ref: "common.yaml#/components/schemas/PagingObjectBase"
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/SimplifiedUserObject"
+
+    AuthenticatedUserObject:
+      allOf:
+        - $ref: "#/components/schemas/SimplifiedUserObject"
+        - type: object
+          properties:
+            email:
+              type: string
+              format: email
+            email_verified:
+              type: boolean
+            identities:
+              type: array
+              items:
+                type: object
+                required:
+                  - provider
+                  - provider_user_id
+                properties:
+                  provider:
+                    type: string
+                    description: The name of the external identity provider (e.g., "google", "github").
+                  provider_user_id:
+                    type: string
+                    description: The unique identifier of the user in the external identity provider.
+
+    UserIdentityObject:
+      type: object
+      required:
+        - provider
+        - provider_user_id
+      properties:
+        provider:
+          type: string
+          description: The name of the external identity provider (e.g., "google", "github").
+        provider_user_id:
+          type: string
+          description: The unique identifier of the user in the external identity provider.
+
+    UserObject:
+      allOf:
+        - $ref: "#/components/schemas/SimplifiedUserObject"
+        - type: object
+          properties:
+            email:
+              type: string
+              format: email
+
+  securitySchemes:
+    SessionToken:
+      type: apiKey
+      in: cookie
+      name: modnook_session
+    AccessToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
