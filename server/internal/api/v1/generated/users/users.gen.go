@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	externalRef0 "github.com/modnook/modnook/http/openapi/v1/common"
+	externalRef0 "github.com/modnook/modnook/internal/api/v1/generated/common"
 	"github.com/oapi-codegen/runtime"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
@@ -44,6 +44,27 @@ func (e UserRole) Valid() bool {
 	default:
 		return false
 	}
+}
+
+// AuthenticatedUserObject defines model for AuthenticatedUserObject.
+type AuthenticatedUserObject struct {
+	AvatarUrl     *string              `json:"avatar_url,omitempty"`
+	Bio           *string              `json:"bio,omitempty"`
+	CreatedAt     time.Time            `json:"created_at"`
+	Displayname   string               `json:"displayname"`
+	Email         *openapi_types.Email `json:"email,omitempty"`
+	EmailVerified *bool                `json:"email_verified,omitempty"`
+	Identities    *[]struct {
+		// Provider The name of the external identity provider (e.g., "google", "github").
+		Provider string `json:"provider"`
+
+		// ProviderUserId The unique identifier of the user in the external identity provider.
+		ProviderUserId string `json:"provider_user_id"`
+	} `json:"identities,omitempty"`
+	Role      UserRole           `json:"role"`
+	UpdatedAt time.Time          `json:"updated_at"`
+	UserId    openapi_types.UUID `json:"user_id"`
+	Username  string             `json:"username"`
 }
 
 // SimplifiedUserObject defines model for SimplifiedUserObject.
@@ -78,6 +99,15 @@ type SimplifiedUserPagingObject struct {
 
 	// Total The total number of items available across all pages.
 	Total int `json:"total"`
+}
+
+// UserIdentityObject defines model for UserIdentityObject.
+type UserIdentityObject struct {
+	// Provider The name of the external identity provider (e.g., "google", "github").
+	Provider string `json:"provider"`
+
+	// ProviderUserId The unique identifier of the user in the external identity provider.
+	ProviderUserId string `json:"provider_user_id"`
 }
 
 // UserObject defines model for UserObject.

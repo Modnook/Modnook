@@ -12,7 +12,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	externalRef0 "github.com/modnook/modnook/http/openapi/v1/common"
+	externalRef0 "github.com/modnook/modnook/internal/api/v1/generated/common"
 	"github.com/oapi-codegen/runtime"
 )
 

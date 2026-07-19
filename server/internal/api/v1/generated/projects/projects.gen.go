@@ -13,9 +13,9 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	externalRef0 "github.com/modnook/modnook/http/openapi/v1/common"
-	externalRef1 "github.com/modnook/modnook/http/openapi/v1/organizations"
-	externalRef2 "github.com/modnook/modnook/http/openapi/v1/users"
+	externalRef0 "github.com/modnook/modnook/internal/api/v1/generated/common"
+	externalRef1 "github.com/modnook/modnook/internal/api/v1/generated/organizations"
+	externalRef2 "github.com/modnook/modnook/internal/api/v1/generated/users"
 	"github.com/oapi-codegen/runtime"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
@@ -85,12 +85,85 @@ type ProjectObject struct {
 	UpdatedAt     *time.Time                         `json:"updated_at,omitempty"`
 }
 
+// ProjectPagingObject defines model for ProjectPagingObject.
+type ProjectPagingObject struct {
+	// Href The full URL of the current API request that produced this page of results.
+	Href  string           `json:"href"`
+	Items *[]ProjectObject `json:"items,omitempty"`
+
+	// Limit The maximum number of items returned in this response page.
+	Limit int `json:"limit"`
+
+	// Next The full URL of the next API request that will produce the next page of results.
+	Next string `json:"next"`
+
+	// Offset The index of the first item returned in this response page.
+	Offset int `json:"offset"`
+
+	// Previous The full URL of the previous API request that produced the previous page of results.
+	Previous string `json:"previous"`
+
+	// Total The total number of items available across all pages.
+	Total int `json:"total"`
+}
+
 // ProjectUpdaterObject defines model for ProjectUpdaterObject.
 type ProjectUpdaterObject struct {
 	Description   *string             `json:"description,omitempty"`
 	LogoUrl       *string             `json:"logo_url,omitempty"`
 	Name          *string             `json:"name,omitempty"`
 	ProjectTypeId *openapi_types.UUID `json:"project_type_id,omitempty"`
+}
+
+// ReleaseBuilderObject defines model for ReleaseBuilderObject.
+type ReleaseBuilderObject struct {
+	Description *string                 `json:"description,omitempty"`
+	DownloadUrl *string                 `json:"download_url,omitempty"`
+	Metadata    *map[string]interface{} `json:"metadata,omitempty"`
+	Version     *string                 `json:"version,omitempty"`
+}
+
+// ReleaseObject defines model for ReleaseObject.
+type ReleaseObject struct {
+	CreatedAt   *time.Time               `json:"created_at,omitempty"`
+	Description *string                  `json:"description,omitempty"`
+	DownloadUrl *string                  `json:"download_url,omitempty"`
+	Metadata    *map[string]interface{}  `json:"metadata,omitempty"`
+	Project     *SimplifiedProjectObject `json:"project,omitempty"`
+	ProjectId   *openapi_types.UUID      `json:"project_id,omitempty"`
+	ReleaseId   *openapi_types.UUID      `json:"release_id,omitempty"`
+	UpdatedAt   *time.Time               `json:"updated_at,omitempty"`
+	Version     *string                  `json:"version,omitempty"`
+}
+
+// ReleasePagingObject defines model for ReleasePagingObject.
+type ReleasePagingObject struct {
+	// Href The full URL of the current API request that produced this page of results.
+	Href  string           `json:"href"`
+	Items *[]ReleaseObject `json:"items,omitempty"`
+
+	// Limit The maximum number of items returned in this response page.
+	Limit int `json:"limit"`
+
+	// Next The full URL of the next API request that will produce the next page of results.
+	Next string `json:"next"`
+
+	// Offset The index of the first item returned in this response page.
+	Offset int `json:"offset"`
+
+	// Previous The full URL of the previous API request that produced the previous page of results.
+	Previous string `json:"previous"`
+
+	// Total The total number of items available across all pages.
+	Total int `json:"total"`
+}
+
+// ReleaseUpdaterObject defines model for ReleaseUpdaterObject.
+type ReleaseUpdaterObject struct {
+	Description *string                 `json:"description,omitempty"`
+	DownloadUrl *string                 `json:"download_url,omitempty"`
+	Metadata    *map[string]interface{} `json:"metadata,omitempty"`
+	Version     *string                 `json:"version,omitempty"`
 }
 
 // SimplifiedProjectMemberObject defines model for SimplifiedProjectMemberObject.

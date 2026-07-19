@@ -13,10 +13,10 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	externalRef0 "github.com/modnook/modnook/http/openapi/v1/common"
-	externalRef1 "github.com/modnook/modnook/http/openapi/v1/organizations"
-	externalRef2 "github.com/modnook/modnook/http/openapi/v1/projects"
-	externalRef3 "github.com/modnook/modnook/http/openapi/v1/users"
+	externalRef0 "github.com/modnook/modnook/internal/api/v1/generated/common"
+	externalRef1 "github.com/modnook/modnook/internal/api/v1/generated/organizations"
+	externalRef2 "github.com/modnook/modnook/internal/api/v1/generated/projects"
+	externalRef3 "github.com/modnook/modnook/internal/api/v1/generated/users"
 	"github.com/oapi-codegen/runtime"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
@@ -75,6 +75,7 @@ type OrganizationInvitationNotification struct {
 		Inviter      *externalRef3.SimplifiedUserObject         `json:"inviter,omitempty"`
 		Organization *externalRef1.SimplifiedOrganizationObject `json:"organization,omitempty"`
 	} `json:"data,omitempty"`
+	Type *string `json:"type,omitempty"`
 }
 
 // ProjectInvitationData defines model for ProjectInvitationData.
@@ -86,11 +87,13 @@ type ProjectInvitationData struct {
 // ProjectInvitationNotification defines model for ProjectInvitationNotification.
 type ProjectInvitationNotification struct {
 	Data *ProjectInvitationData `json:"data,omitempty"`
+	Type *string                `json:"type,omitempty"`
 }
 
 // ProjectReleaseNotification defines model for ProjectReleaseNotification.
 type ProjectReleaseNotification struct {
 	Release *externalRef2.ReleaseObject `json:"release,omitempty"`
+	Type    *string                     `json:"type,omitempty"`
 }
 
 // accessTokenContextKey is the context key for AccessToken security scheme

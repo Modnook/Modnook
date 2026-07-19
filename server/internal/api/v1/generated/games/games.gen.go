@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	externalRef0 "github.com/modnook/modnook/http/openapi/v1/common"
+	externalRef0 "github.com/modnook/modnook/internal/api/v1/generated/common"
 	"github.com/oapi-codegen/runtime"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
@@ -42,6 +42,13 @@ type GameObject struct {
 	ProjectTypes *[]ProjectTypeObject `json:"project_types,omitempty"`
 	Slug         *string              `json:"slug,omitempty"`
 	UpdatedAt    *time.Time           `json:"updated_at,omitempty"`
+}
+
+// GameUpdaterObject defines model for GameUpdaterObject.
+type GameUpdaterObject struct {
+	BannerUrl *string `json:"banner_url,omitempty"`
+	CardUrl   *string `json:"card_url,omitempty"`
+	Name      *string `json:"name,omitempty"`
 }
 
 // ProjectTypeBuilderObject defines model for ProjectTypeBuilderObject.
@@ -82,6 +89,12 @@ type ProjectTypePagingObject struct {
 
 	// Total The total number of items available across all pages.
 	Total int `json:"total"`
+}
+
+// ProjectTypeUpdaterObject defines model for ProjectTypeUpdaterObject.
+type ProjectTypeUpdaterObject struct {
+	Name   *string `json:"name,omitempty"`
+	Schema *string `json:"schema,omitempty"`
 }
 
 // SimplifiedGameObject defines model for SimplifiedGameObject.

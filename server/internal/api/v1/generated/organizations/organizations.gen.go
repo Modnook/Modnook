@@ -7,9 +7,78 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
+	externalRef1 "github.com/modnook/modnook/internal/api/v1/generated/users"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
+
+// Defines values for OrganizationRole.
+const (
+	Admin      OrganizationRole = "Admin"
+	Maintainer OrganizationRole = "Maintainer"
+	Owner      OrganizationRole = "Owner"
+)
+
+// Valid indicates whether the value is a known member of the OrganizationRole enum.
+func (e OrganizationRole) Valid() bool {
+	switch e {
+	case Admin:
+		return true
+	case Maintainer:
+		return true
+	case Owner:
+		return true
+	default:
+		return false
+	}
+}
+
+// OrganizationMemberObject defines model for OrganizationMemberObject.
+type OrganizationMemberObject struct {
+	CreatedAt      *time.Time                         `json:"created_at,omitempty"`
+	OrganizationId *openapi_types.UUID                `json:"organization_id,omitempty"`
+	Role           *OrganizationRole                  `json:"role,omitempty"`
+	UpdatedAt      *time.Time                         `json:"updated_at,omitempty"`
+	User           *externalRef1.SimplifiedUserObject `json:"user,omitempty"`
+	UserId         *openapi_types.UUID                `json:"user_id,omitempty"`
+}
+
+// OrganizationObject defines model for OrganizationObject.
+type OrganizationObject struct {
+	AvatarUrl      *string                     `json:"avatar_url,omitempty"`
+	CreatedAt      *time.Time                  `json:"created_at,omitempty"`
+	Description    *string                     `json:"description,omitempty"`
+	Members        *[]OrganizationMemberObject `json:"members,omitempty"`
+	Name           *string                     `json:"name,omitempty"`
+	OrganizationId *openapi_types.UUID         `json:"organization_id,omitempty"`
+	Slug           *string                     `json:"slug,omitempty"`
+	UpdatedAt      *time.Time                  `json:"updated_at,omitempty"`
+}
+
+// OrganizationRole defines model for OrganizationRole.
+type OrganizationRole string
+
+// SimplifiedOrganizationMemberObject defines model for SimplifiedOrganizationMemberObject.
+type SimplifiedOrganizationMemberObject struct {
+	CreatedAt      *time.Time          `json:"created_at,omitempty"`
+	OrganizationId *openapi_types.UUID `json:"organization_id,omitempty"`
+	Role           *OrganizationRole   `json:"role,omitempty"`
+	UpdatedAt      *time.Time          `json:"updated_at,omitempty"`
+	UserId         *openapi_types.UUID `json:"user_id,omitempty"`
+}
+
+// SimplifiedOrganizationObject defines model for SimplifiedOrganizationObject.
+type SimplifiedOrganizationObject struct {
+	AvatarUrl      *string             `json:"avatar_url,omitempty"`
+	CreatedAt      *time.Time          `json:"created_at,omitempty"`
+	Description    *string             `json:"description,omitempty"`
+	Name           *string             `json:"name,omitempty"`
+	OrganizationId *openapi_types.UUID `json:"organization_id,omitempty"`
+	Slug           *string             `json:"slug,omitempty"`
+	UpdatedAt      *time.Time          `json:"updated_at,omitempty"`
+}
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {

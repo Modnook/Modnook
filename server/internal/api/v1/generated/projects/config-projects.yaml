@@ -1,11 +1,13 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/oapi-codegen/oapi-codegen/v2.7.2/configuration-schema.json
 package: api
-output: projects/projects.gen.go
+output: generated/projects/projects.gen.go
 generate:
   models: true
   chi-server: true
   strict-server: true
 import-mapping:
-  common.yaml: "github.com/modnook/modnook/http/openapi/v1/common"
-  organizations.yaml: "github.com/modnook/modnook/http/openapi/v1/organizations"
-  users.yaml: "github.com/modnook/modnook/http/openapi/v1/users"
+  common.yaml: "github.com/modnook/modnook/internal/api/v1/generated/common"
+  organizations.yaml: "github.com/modnook/modnook/internal/api/v1/generated/organizations"
+  users.yaml: "github.com/modnook/modnook/internal/api/v1/generated/users"
+output-options:
+  skip-prune: true
